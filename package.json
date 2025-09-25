@@ -1,0 +1,81 @@
+{
+  "name": "baselinechecker",
+  "displayName": "BaselineChecker",
+  "description": "Scan HTML/CSS files for non-Baseline web features and annotate inline.",
+  "version": "0.1.1",
+  "publisher": "DevanshSrivastava",
+  "author": "DevanshSrivastava",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Linters"
+  ],
+  "keywords": [
+    "baseline",
+    "compatibility",
+    "html",
+    "css",
+    "scanner",
+    "web-features"
+  ],
+  "main": "./dist/extension.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DevanshSrivastavaEveryware/BaselineChecker"
+  },
+  "icon": "assets/icon.png",
+  "galleryBanner": {
+    "color": "#0b1320",
+    "theme": "dark"
+  },
+  "screenshots": [
+    { "path": "assets/screenshot1.png", "caption": "HTML deprecated and non-Baseline markers" },
+    { "path": "assets/screenshot2.png", "caption": "Hover details with status" },
+    { "path": "assets/screenshot3.png", "caption": "CSS features, including inside <style>" }
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "baseline.scanFile",
+        "title": "Scan file for Baseline compliance"
+      }
+    ],
+    "configuration": {
+      "title": "Baseline Scanner",
+      "properties": {
+        "baselineScanner.deprecatedTags": {
+          "type": "array",
+          "markdownDescription": "Additional HTML tag names to treat as deprecated (case-insensitive). Examples: ['marquee','blink'].",
+          "items": { "type": "string" },
+          "default": [],
+          "scope": "resource"
+        }
+      }
+    }
+  },
+  "activationEvents": [
+    "onLanguage:html",
+    "onLanguage:css",
+    "onLanguage:scss",
+    "onLanguage:less"
+  ],
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint . --ext ts,tsx --fix || true",
+    "package": "vsce package",
+    "test": "echo 'No tests yet'"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.90.0",
+    "eslint": "^9.0.0",
+    "typescript": "^5.4.0",
+    "@vscode/vsce": "^3.0.0"
+  },
+  "dependencies": {
+    "web-features": "^3.1.0"
+  }
+}
