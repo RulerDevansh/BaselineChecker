@@ -14,9 +14,9 @@ A VS Code extension that scans HTML and CSS for features not in Baseline using t
 - Setting `baselineScanner.deprecatedTags` to add your own deprecated tags
 
 ## Screenshots
-![HTML](assets/screenshot1.png)
-![Also Shows Depreciated](assets/screenshot2.png)
-![CSS](assets/screenshot3.png)
+![HTML](/assets/screenshot1.png)
+![Also Shows Depreciated](/assets/screenshot2.png)
+![CSS](/assets/screenshot3.png)
 
 ## Settings
 `baselineScanner.deprecatedTags: string[]` — additional HTML tag names to treat as deprecated.
