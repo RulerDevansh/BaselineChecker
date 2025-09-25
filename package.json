@@ -22,7 +22,7 @@
   "main": "./dist/extension.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/DevanshSrivastavaEveryware/BaselineChecker"
+    "url": "https://github.com/RulerDevansh/BaselineChecker"
   },
   "icon": "assets/icon.png",
   "galleryBanner": {
