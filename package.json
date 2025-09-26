@@ -1,8 +1,8 @@
 {
-  "name": "baselinechecker",
-  "displayName": "BaselineChecker",
-  "description": "Scan HTML/CSS files for non-Baseline web features and annotate inline.",
-  "version": "0.1.1",
+  "name": "baseliner",
+  "displayName": "Baseliner",
+  "description": "Baseliner scans HTML/CSS for non‑Baseline features, annotates issues inline, and can auto‑rewrite to Baseline‑safe code (Gemini or local fallback).",
+  "version": "1.0.0",
   "publisher": "DevanshSrivastava",
   "author": "DevanshSrivastava",
   "engines": {
@@ -30,17 +30,33 @@
     "theme": "dark"
   },
   "screenshots": [
-    { "path": "assets/screenshot1.png", "caption": "HTML deprecated and non-Baseline markers" },
-    { "path": "assets/screenshot2.png", "caption": "Hover details with status" },
-    { "path": "assets/screenshot3.png", "caption": "CSS features, including inside <style>" }
+    { "path": "assets/Screenshot1.png", "caption": "HTML deprecated and non‑Baseline markers" },
+    { "path": "assets/Screenshot2.png", "caption": "Hover details with status" },
+    { "path": "assets/Screenshot3.png", "caption": "CSS features, including inside <style>" },
+    { "path": "assets/Screenshot4.png", "caption": "Editor title bar star button: Rewrite to Baseline (AI)" },
+    { "path": "assets/Screenshot5.png", "caption": "Extension settings: API key, model, deprecated tags" }
   ],
   "contributes": {
     "commands": [
       {
         "command": "baseline.scanFile",
         "title": "Scan file for Baseline compliance"
+      },
+      {
+        "command": "baseline.rewriteFileAI",
+        "title": "Rewrite to Baseline (AI)",
+        "icon": "$(star-full)"
       }
     ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "baseline.rewriteFileAI",
+          "group": "navigation@99",
+          "when": "editorLangId == html || editorLangId == css || editorLangId == scss || editorLangId == less"
+        }
+      ]
+    },
     "configuration": {
       "title": "Baseline Scanner",
       "properties": {
@@ -50,6 +66,30 @@
           "items": { "type": "string" },
           "default": [],
           "scope": "resource"
+        },
+        "baseline.geminiApiKey": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Google Gemini API key used for AI rewrite to Baseline. Stored in VS Code settings (User/Workspace)."
+        },
+        "baseline.geminiModel": {
+          "type": "string",
+          "default": "gemini-2.5-flash",
+          "markdownDescription": "Google Gemini model to use for AI rewrite.",
+          "enum": [
+            "gemini-2.5-pro",
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-lite",
+            "gemini-2.0-flash-001",
+            "gemini-2.0-flash-lite-001"
+          ],
+          "enumDescriptions": [
+            "Highest quality (best adherence to instructions).",
+            "Fast and capable (good balance).",
+            "Ultra-fast, lightweight (lower cost).",
+            "Gemini 2.0 Flash (2025) model.",
+            "Gemini 2.0 Flash-Lite (2025) model."
+          ]
         }
       }
     }
@@ -76,6 +116,7 @@
     "@vscode/vsce": "^3.0.0"
   },
   "dependencies": {
-    "web-features": "^3.1.0"
+    "web-features": "^3.1.0",
+    "@google/generative-ai": "^0.20.0"
   }
 }

@@ -1,10 +1,13 @@
 import * as vscode from 'vscode';
 import { scanTextForBaseline } from './scanner';
+import { rewriteWithAI } from './aiRewriter';
+import { rewriteRuleBased } from './rewriter';
+import { log } from 'console';
 
 let diagnostics: vscode.DiagnosticCollection;
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log('[Baseline Checker] activated()');
+  console.log('[Baseliner] activated()');
   diagnostics = vscode.languages.createDiagnosticCollection('baseline');
   context.subscriptions.push(diagnostics);
 
@@ -14,6 +17,14 @@ export function activate(context: vscode.ExtensionContext) {
     runScan(editor.document);
   });
   context.subscriptions.push(command);
+
+  // AI rewrite command
+  const rewriteCmd = vscode.commands.registerCommand('baseline.rewriteFileAI', async () => {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) return;
+    await rewriteCurrentFile(editor);
+  });
+  context.subscriptions.push(rewriteCmd);
 
   // Hover provider for HTML, CSS, SCSS, LESS
   const hoverProvider = vscode.languages.registerHoverProvider(
@@ -60,6 +71,21 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  // Status bar items
+  const scanItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 1000);
+  scanItem.text = '$(search) Baseline Scan';
+  scanItem.tooltip = 'Scan file for Baseline compliance';
+  scanItem.command = 'baseline.scanFile';
+  scanItem.show();
+  context.subscriptions.push(scanItem);
+
+  const aiItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 999);
+  aiItem.text = '$(wand) Rewrite to Baseline (AI)';
+  aiItem.tooltip = 'Rewrite current file to Baseline-safe code using Gemini';
+  aiItem.command = 'baseline.rewriteFileAI';
+  aiItem.show();
+  context.subscriptions.push(aiItem);
+
   // Scan already opened active editor once on activation
   if (vscode.window.activeTextEditor && isSupported(vscode.window.activeTextEditor.document)) {
     runScan(vscode.window.activeTextEditor.document);
@@ -96,4 +122,57 @@ function runScan(doc: vscode.TextDocument) {
   }
 
   diagnostics.set(doc.uri, fileDiagnostics);
+}
+
+async function rewriteCurrentFile(editor: vscode.TextEditor) {
+  const doc = editor.document;
+  if (!isSupported(doc)) return;
+
+  const cfgScanner = vscode.workspace.getConfiguration('baselineScanner');
+  const deprecatedTags = cfgScanner.get<string[]>('deprecatedTags') || [];
+  const { issues } = scanTextForBaseline(doc.getText(), doc.languageId, { deprecatedTags });
+
+  // Only act on issues that are not-baseline or deprecated (scanner never returns baseline)
+  const actionable = issues;
+
+  const cfg = vscode.workspace.getConfiguration('baseline');
+  const apiKey = (cfg.get<string>('geminiApiKey') || '').trim();
+  
+
+  let newText: string | undefined;
+  let usedAI = false;
+  try {
+    if (apiKey) {
+      newText = await rewriteWithAI(doc.getText(), doc.languageId, actionable);
+      usedAI = true;
+    }
+    else throw new Error('NO_GEMINI_API_KEY');
+  } catch (e: any) {
+    console.log(e);
+    const msg = String(e?.message || e || '');
+    const isQuota = (e && typeof e === 'object' && (e as any).status === 429) || /\b429\b|too many requests|quota|exceeded/i.test(msg);
+    if (isQuota) {
+      const brief = msg.length > 800 ? msg.slice(0, 800) + '…' : msg;
+      const choice = await vscode.window.showInformationMessage(
+        `Gemini quota exceeded. Falling back to local rewrite.\n${brief}`,
+        'Learn more'
+      );
+      if (choice === 'Learn more') {
+        vscode.env.openExternal(vscode.Uri.parse('https://ai.google.dev/gemini-api/docs/rate-limits'));
+      }
+    }
+    newText = rewriteRuleBased(doc.getText(), doc.languageId, actionable);
+    usedAI = false;
+  }
+
+  if (!newText || newText === doc.getText()) {
+    vscode.window.showWarningMessage('No changes from rewrite.');
+    return;
+  }
+
+  const fullRange = new vscode.Range(new vscode.Position(0, 0), new vscode.Position(doc.lineCount, 0));
+  await editor.edit(ed => ed.replace(fullRange, newText!));
+  vscode.window.showInformationMessage(usedAI ? 'AI rewrite applied (Gemini)' : 'Fallback rewrite applied');
+
+  runScan(editor.document);
 }

@@ -145,6 +145,22 @@ export function scanTextForBaseline(docText: string, languageId: string, options
   const issues: ScanIssue[] = [];
   const { cssMap, htmlTagMap, htmlTagAttrMap, htmlTagAttrValMap, htmlAttrFallbackMap } = buildLabelMaps();
 
+  // Helpers to mask comments with spaces (preserve indices/line structure)
+  const maskHtmlComments = (t: string) => t.replace(/<!--[\s\S]*?-->/g, (m) => m.replace(/[^\n]/g, ' '));
+  const maskCssBlockComments = (t: string) => t.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
+  const maskScssLessLineComments = (t: string) => t.replace(/(^|[^:])\/\/[^\n]*/g, (m) => m.replace(/[^\n]/g, (ch) => (ch === '\n' ? '\n' : ' ')));
+
+  // Prepare masked doc for line-by-line token scans
+  let maskedDoc = docText;
+  if (languageId === 'html') {
+    maskedDoc = maskHtmlComments(maskedDoc);
+  } else if (languageId === 'css') {
+    maskedDoc = maskCssBlockComments(maskedDoc);
+  } else if (languageId === 'scss' || languageId === 'less') {
+    maskedDoc = maskCssBlockComments(maskedDoc);
+    maskedDoc = maskScssLessLineComments(maskedDoc);
+  }
+
   // Merge overrides with user-provided deprecated tags
   const tagOverrides = new Map(HTML_TAG_STATUS_OVERRIDES);
   if (options?.deprecatedTags && Array.isArray(options.deprecatedTags)) {
@@ -194,7 +210,17 @@ export function scanTextForBaseline(docText: string, languageId: string, options
   // Tokenization heuristics
   // - For CSS: property names and at-rules
   // - For HTML: tag names and attributes
-  const lines = docText.split(/\r?\n/);
+  const lines = maskedDoc.split(/\r?\n/);
+  // For HTML tag scanning, additionally mask <style> contents so '<big>' inside CSS comments doesn't look like HTML
+  let linesForHtmlTagScan: string[] | null = null;
+  if (languageId === 'html') {
+    const maskedForTags = maskedDoc.replace(/(<style\b[^>]*>)([\s\S]*?)(<\/style>)/gi, (_m, open, body, close) => {
+      // Replace all non-newline chars in style body to preserve line/column mapping
+      const spaced = String(body).replace(/[^\n]/g, ' ');
+      return `${open}${spaced}${close}`;
+    });
+    linesForHtmlTagScan = maskedForTags.split(/\r?\n/);
+  }
 
   // If scanning HTML, also scan CSS inside <style> blocks
   if (languageId === "html") {
@@ -202,12 +228,14 @@ export function scanTextForBaseline(docText: string, languageId: string, options
     let sm: RegExpExecArray | null;
     while ((sm = styleRegex.exec(docText))) {
       const full = sm[0];
-      const cssText = sm[1] || "";
+      const cssTextRaw = sm[1] || "";
+      // Mask CSS comments inside the style block
+      const cssText = maskCssBlockComments(cssTextRaw);
       const openTagEndRel = full.indexOf('>');
       if (openTagEndRel === -1) continue;
       const contentAbsStart = (sm.index || 0) + openTagEndRel + 1;
       // Scan cssText for properties and at-rules
-      const cssLines = cssText.split(/\r?\n/);
+  const cssLines = cssText.split(/\r?\n/);
       // Build line start offsets within cssText for absolute position mapping
       const cssLineStarts: number[] = [0];
       let cursor = 0;
@@ -265,6 +293,8 @@ export function scanTextForBaseline(docText: string, languageId: string, options
         if (id) pushIfNonBaseline(id, rule, lineIdx, m.index + 1, m.index + 1 + m[1].length);
       }
     } else if (languageId === "html") {
+      const tagLines = linesForHtmlTagScan || lines;
+      const line = tagLines[lineIdx];
       // HTML tags and attributes with value-aware matching
       const tagRegex = /<\/?\s*([a-zA-Z0-9-:]+)/g;
       let tm: RegExpExecArray | null;
