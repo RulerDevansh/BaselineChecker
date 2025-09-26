@@ -25,11 +25,15 @@ Baseliner is a VS Code extension that scans HTML/CSS for features that aren’t 
 - Comment‑aware scanning: ignores HTML/CSS/SCSS/LESS comments, and masks `<style>` content during HTML tag scanning to avoid false positives like `<big>` in CSS comments.
 
 ## Screenshots
-- HTML diagnostics: `assets/Screenshot1.png`
-- Hover details: `assets/Screenshot2.png`
-- CSS (including inside `<style>`): `assets/Screenshot3.png`
-- Editor star button for AI rewrite: `assets/Screenshot4.png`
-- Extension settings (API key, model, deprecated tags): `assets/Screenshot5.png`
+![HTML diagnostics](assets/Screenshot1.png)
+
+![Hover details](assets/Screenshot2.png)
+
+![CSS (including inside style blocks)](assets/Screenshot3.png)
+
+![Editor star button for AI rewrite](assets/Screenshot4.png)
+
+![Extension settings (API key, model, deprecated tags)](assets/Screenshot5.png)
 
 ## Settings
 - `baselineScanner.deprecatedTags: string[]`
