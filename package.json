@@ -3,7 +3,7 @@
   "displayName": "Baseliner",
   "description": "Baseliner scans HTML/CSS for non‑Baseline features, annotates issues inline, and can auto‑rewrite to Baseline‑safe code (Gemini or local fallback).",
   "version": "1.0.0",
-  "publisher": "DevanshSrivastava",
+  "publisher": "Devansh",
   "author": "DevanshSrivastava",
   "engines": {
     "vscode": "^1.90.0"
